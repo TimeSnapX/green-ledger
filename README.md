@@ -20,12 +20,14 @@ This is a personal planning tool, not financial, legal, tax, or credit advice. I
 
 If you log hours this week, the dashboard uses those hours (PAYG estimate). If a payslip covers the week, it uses actual net. Until then it uses the 8h × 5 floor (~$1,648.40 gross, ~$1,302.40 take-home).
 
-## Snapshot (19 Sep 2026)
+## Snapshot (20 Sep 2026)
 
-- Hardship freeze on until **19 Nov 2026**. ANZ card $250 + loan $300 restart that day.
+- Hardship freeze on until **19 Nov 2026**. ANZ card and loan **unchanged since freeze**; mins restart that day.
 - Bevchain floor: **$41.21 × 40h = $1,648.40** gross · PAYG scale 2 ~**$1,302.40** net.
-- Freeze envelope ~**$835/wk** (rent, bills, food, fuel, smokes $12–$13/day, $70 cash, $50 savings, live lenders). Floor leftover ~**$467/wk** to the snowball.
-- WagePay $138 was due 3 Sep. Beforepay ~$53 around 27 Sep. Mark them $0 in Debts when paid.
+- Living: rent **$285** (then $270 when 2 weeks in front — uncertain), fuel **$120 min**, smokes **$120 cap**, phone **$120 on the 13th**, internet **$105 on the 25th**, car insurance **$41 on the 18th**.
+- Ongoing lenders: Beforepay **$53/wk × 4**, Quick Cash **$40** ($580 left), Fundo **$20** ($317 left), WalletWizard **$21.60** ($266 left).
+- Next week one-offs: Press Pay **$80** then done, Timbo **$50**, Josh **$80**. Mike **$430** over 2 payments. WagePay **done**.
+- After those small loans and friends are $0, only **ANZ** is left.
 
 ## Run locally
 

@@ -32,6 +32,7 @@ import {
   BUDGET_ROWS,
   CHECKLIST,
   FIRST_EXPRESS,
+  HEAVY_WEEK,
   LEVERS,
   PATH,
   PHASES,
@@ -398,11 +399,25 @@ function renderDashboard() {
       </div>
     </div>
 
+    ${
+      toISODate(now) <= HEAVY_WEEK.isoEnd
+        ? `<div class="callout">
+        <h3>Heavy week · ${escapeHtml(HEAVY_WEEK.when)}</h3>
+        <p>
+          On top of rent and the usual weekly lenders:
+          ${HEAVY_WEEK.items.map((i) => `${escapeHtml(i.name)} ${money(i.amount)}`).join(" · ")}
+          = <strong style="color:var(--text)">${money(HEAVY_WEEK.items.reduce((s, i) => s + i.amount, 0))}</strong>.
+          Floor still covers it if smokes stay at the $120 cap and nothing else is added.
+        </p>
+      </div>`
+        : ""
+    }
+
     <div class="grid-stats">
       <div class="stat-card danger">
         <div class="label">Total debt</div>
         <div class="value">${money(total)}</div>
-        <div class="hint">All loans, BNPL, fines</div>
+        <div class="hint">Small lenders, friends, ANZ</div>
       </div>
       <div class="stat-card ${income.source === "plan" ? "neutral" : "ok"}">
         <div class="label">${escapeHtml(income.label)}</div>
@@ -642,7 +657,7 @@ function renderBudget() {
               ? `This week has ${live.days} shift${live.days === 1 ? "" : "s"} so far (~${money(roundMoney(live.loggedNet))} est. take-home). Live on the floor until four days or a payslip.`
               : "Log hours and this page will show the real week next to the planning band."
         }
-        Extra days are not a reason to loosen smokes or cash.
+        Fuel is <strong style="color:var(--text)">$120/wk minimum</strong>. Smokes are a <strong style="color:var(--text)">$120/wk cap</strong>. Extra days are not a reason to loosen either.
       </p>
     </div>
 

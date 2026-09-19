@@ -66,8 +66,8 @@ async function runDesktop() {
   await page.click('[data-view="debts"]');
   await page.waitForSelector("#view-debts.active");
   const debts = await page.locator("#view-debts").innerText();
-  if (!/WagePay/.test(debts) || !/Afterpay/.test(debts)) errors.push("debts missing lenders");
-  if (!/overdue/i.test(debts)) errors.push("WagePay should show overdue on 19 Sep 2026");
+  if (!/Press Pay/.test(debts) || !/Quick Cash/.test(debts) || !/Fundo/.test(debts)) errors.push("debts missing lenders");
+  if (!/WagePay/.test(debts) || !/CLEARED/.test(debts)) errors.push("WagePay should show cleared");
   await shot(page, "04-debts");
 
   await page.click('[data-view="budget"]');

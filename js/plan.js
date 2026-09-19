@@ -1,34 +1,52 @@
 import { parseISODate, roundCents, shiftPay, toISODate } from "./money.js";
 import { paygWeekly, weeklyNetFromGross } from "./tax.js";
 
-export const STORAGE_KEY = "green-ledger-plan-v1";
-export const LEGACY_KEYS = ["debt-to-green-v3", "debt-to-green-v2", "debt-to-green-v1"];
+export const STORAGE_KEY = "green-ledger-plan-v2";
+export const LEGACY_KEYS = ["green-ledger-plan-v1", "debt-to-green-v3", "debt-to-green-v2", "debt-to-green-v1"];
 
 export const BEV_RATE = 41.21;
 export const BEV_JOB = "Bevchain · HR Multi-drop Delivery Driver";
 export const FREEZE_START = "2026-08-20";
 export const FREEZE_END = "2026-11-19";
 export const ANZ_RESTART = "2026-11-19";
-export const SMOKES_WEEK = ((12 + 13) / 2) * 7; // $87.50
 export const ANZ_WEEKLY = 127; // $250 card + $300 loan = $550/mo
 
+export function monthlyToWeekly(amount) {
+  return roundCents((Number(amount) * 12) / 52);
+}
+
+export const SMOKES_WEEK = 120; // cap
+export const FUEL_WEEK = 120; // minimum at current prices
+export const RENT_NOW = 285;
+export const RENT_AHEAD = 270; // when 2 weeks in front — standing uncertain
+export const PHONE_MONTH = 120; // due 13th
+export const INTERNET_MONTH = 105; // due 25th
+export const INSURANCE_MONTH = 41; // car, due 18th
+
 export const LIVING = {
-  rent: 285,
+  rent: RENT_NOW,
   utilities: 40,
-  comms: 51,
+  phone: monthlyToWeekly(PHONE_MONTH),
+  internet: monthlyToWeekly(INTERNET_MONTH),
+  insurance: monthlyToWeekly(INSURANCE_MONTH),
   food: 70,
-  fuel: 100,
+  fuel: FUEL_WEEK,
   smokes: SMOKES_WEEK,
   cash: 70,
   savings: 50,
-  afterpay: 25,
-  fundo: 20,
-  wallet: 21.6,
-  fines: 15,
 };
 
-export const WEEKLY_CORE = Object.values(LIVING).reduce((a, b) => a + b, 0);
-export const WEEKLY_CORE_AFTER_ANZ = WEEKLY_CORE + ANZ_WEEKLY;
+export const LENDER_WEEK = {
+  beforepay: 53,
+  quickcash: 40,
+  fundo: 20,
+  wallet: 21.6,
+};
+
+export const WEEKLY_LIVING = Object.values(LIVING).reduce((a, b) => a + b, 0);
+export const WEEKLY_LENDERS = Object.values(LENDER_WEEK).reduce((a, b) => a + b, 0);
+export const WEEKLY_CORE = roundCents(WEEKLY_LIVING + WEEKLY_LENDERS);
+export const WEEKLY_CORE_AFTER_ANZ = roundCents(WEEKLY_CORE + ANZ_WEEKLY);
 
 function weekdayGross(hours, days = 5) {
   return roundCents(days * shiftPay(hours, 0, BEV_RATE, "weekday").estGross);
@@ -161,64 +179,95 @@ export function roundMoney(n) {
 
 export const DEFAULT_DEBTS = [
   {
-    id: "fines",
-    name: "Parking fines (×2)",
-    balance: 690,
-    original: 690,
-    payment: "$60 × 2 early Sep, then $15/wk",
-    role: "Payment plan — $60 per infringement due early September, then $15/week until $0",
-    due: "2026-09-05",
+    id: "wagepay",
+    name: "WagePay",
+    balance: 0,
+    original: 138,
+    payment: "Cleared",
+    role: "Done",
+    due: "2026-09-03",
+    priority: 0,
+    hot: false,
+  },
+  {
+    id: "presspay",
+    name: "Press Pay",
+    balance: 80,
+    original: 80,
+    payment: "$80 next week · then done",
+    role: "One payment then cleared",
+    due: "2026-09-26",
     priority: 1,
     hot: true,
   },
   {
-    id: "wagepay",
-    name: "WagePay",
-    balance: 138,
-    original: 138,
-    payment: "$138 final · 3 Sep 2026",
-    role: "Due 3 Sep — if still open, kill this week then mark $0",
-    due: "2026-09-03",
+    id: "timbo",
+    name: "Timbo (friend)",
+    balance: 50,
+    original: 50,
+    payment: "$50 next week",
+    role: "Personal loan — pay next week then clear",
+    due: "2026-09-26",
     priority: 2,
+    hot: true,
+  },
+  {
+    id: "josh",
+    name: "Josh (friend)",
+    balance: 80,
+    original: 80,
+    payment: "$80 next week",
+    role: "Personal loan — pay next week then clear",
+    due: "2026-09-26",
+    priority: 3,
     hot: true,
   },
   {
     id: "beforepay",
     name: "Beforepay",
-    balance: 53,
-    original: 53,
-    payment: "$53 final · ~27 Sep 2026",
-    role: "Final around 27 Sep — then cleared. Do not roll it",
-    due: "2026-09-27",
-    priority: 3,
-    hot: true,
-  },
-  {
-    id: "fundo",
-    name: "Fundo",
-    balance: 583,
-    original: 583,
-    payment: "$20 / week until paid off",
-    role: "~29 weeks at $20/wk if balance holds — extra cash shortens it",
+    balance: 212,
+    original: 212,
+    payment: "$53 / week for next 4 weeks",
+    role: "Four weekly hits then cleared — do not roll it",
+    due: "2026-10-18",
     priority: 4,
+    hot: true,
   },
   {
     id: "wallet",
     name: "WalletWizard",
-    balance: 432,
-    original: 432,
-    payment: "$21.60 / week",
-    role: "Keep weekly until $0 — then redirect",
+    balance: 266,
+    original: 266,
+    payment: "$21.60 / week until paid off",
+    role: "~12 weeks at $21.60/wk if balance holds — then redirect",
     priority: 5,
   },
   {
-    id: "afterpay",
-    name: "Afterpay",
-    balance: 1514,
-    original: 1514,
-    payment: "$25 / week from 28 Aug",
-    role: "No new purchases; $25/wk until paid off",
+    id: "fundo",
+    name: "Fundo",
+    balance: 317,
+    original: 317,
+    payment: "$20 / week until paid off",
+    role: "~16 weeks at $20/wk if balance holds — then redirect",
     priority: 6,
+  },
+  {
+    id: "mike",
+    name: "Mike (friend)",
+    balance: 430,
+    original: 430,
+    payment: "$430 over 2 payments, then clear",
+    role: "Personal loan — two payments then done",
+    priority: 7,
+  },
+  {
+    id: "quickcash",
+    name: "Quick Cash",
+    balance: 580,
+    original: 580,
+    payment: "$40 / week until paid off",
+    role: "~14.5 weeks at $40/wk if balance holds — then redirect",
+    priority: 8,
   },
   {
     id: "card",
@@ -226,9 +275,9 @@ export const DEFAULT_DEBTS = [
     balance: 6000,
     original: 6000,
     payment: "$0 until 19 Nov, then $250/mo",
-    role: "Frozen — no new spend. Minimum restarts 19 Nov 2026",
+    role: "Unchanged since freeze — no new spend. Minimum restarts 19 Nov 2026",
     due: ANZ_RESTART,
-    priority: 7,
+    priority: 9,
   },
   {
     id: "loan",
@@ -236,57 +285,64 @@ export const DEFAULT_DEBTS = [
     balance: 6232,
     original: 6232,
     payment: "$0 until 19 Nov, then $300/mo",
-    role: "Paused under hardship. Minimum restarts 19 Nov 2026 — finish last",
+    role: "Unchanged since freeze. Minimum restarts 19 Nov 2026 — finish last",
     due: ANZ_RESTART,
-    priority: 8,
+    priority: 10,
   },
 ];
 
 export const BILLS = [
-  { id: "wagepay", name: "WagePay final", amount: 138, when: "3 Sep 2026", iso: "2026-09-03", note: "Then cleared", urgent: true },
-  { id: "fine-deposit", name: "Parking fines first instalment", amount: 120, when: "Early Sep 2026", iso: "2026-09-05", note: "$60 per infringement (×2)", urgent: true },
-  { id: "beforepay", name: "Beforepay final", amount: 53, when: "~27 Sep 2026", iso: "2026-09-27", note: "Due this month — then cleared", urgent: true },
-  { id: "afterpay-start", name: "Afterpay $25/wk", amount: 25, when: "Weekly from 28 Aug", iso: "2026-08-28", note: "Until paid off — no new buys", urgent: false },
-  { id: "fines-weekly", name: "Parking fines plan", amount: 15, when: "Weekly after first $60s", note: "$15/wk until both infringements are $0", urgent: false },
-  { id: "rent", name: "Rent", amount: 285, when: "Thursdays (weekly)", note: "Always first · operating pocket", urgent: false },
-  { id: "fundo-pay", name: "Fundo", amount: 20, when: "Weekly", note: "Until paid off", urgent: false },
-  { id: "wallet-pay", name: "WalletWizard", amount: 21.6, when: "Weekly", note: "Until paid off", urgent: false },
+  { id: "internet-sep", name: "Internet", amount: INTERNET_MONTH, when: "25 Sep 2026", iso: "2026-09-25", note: "$105 due the 25th every month", urgent: true },
+  { id: "presspay", name: "Press Pay", amount: 80, when: "Next week", iso: "2026-09-26", note: "One $80 hit then done", urgent: true },
+  { id: "timbo", name: "Timbo (friend)", amount: 50, when: "Next week", iso: "2026-09-26", note: "Personal loan — then clear", urgent: true },
+  { id: "josh", name: "Josh (friend)", amount: 80, when: "Next week", iso: "2026-09-26", note: "Personal loan — then clear", urgent: true },
+  { id: "beforepay", name: "Beforepay", amount: 53, when: "Weekly · 4 weeks", iso: "2026-10-18", note: "$53/wk until four payments are done", urgent: true },
+  { id: "phone", name: "Phone", amount: PHONE_MONTH, when: "13th monthly", iso: "2026-10-13", note: "$120 due the 13th every month", urgent: false },
+  { id: "insurance", name: "Car insurance", amount: INSURANCE_MONTH, when: "18th monthly", iso: "2026-10-18", note: "$41 due the 18th every month", urgent: false },
+  { id: "internet", name: "Internet", amount: INTERNET_MONTH, when: "25th monthly", note: "$105 due the 25th every month", urgent: false },
+  { id: "rent", name: "Rent", amount: RENT_NOW, when: "Thursdays (weekly)", note: "$285 until 2 weeks in front (uncertain) · then $270", urgent: false },
+  { id: "fundo-pay", name: "Fundo", amount: 20, when: "Weekly", note: "Until $317 is $0", urgent: false },
+  { id: "wallet-pay", name: "WalletWizard", amount: 21.6, when: "Weekly", note: "Until $266 is $0", urgent: false },
+  { id: "quickcash-pay", name: "Quick Cash", amount: 40, when: "Weekly", note: "Until $580 is $0", urgent: false },
+  { id: "mike", name: "Mike (friend)", amount: 430, when: "2 payments", note: "$430 split over two payments then clear", urgent: false },
   { id: "anz-restart", name: "ANZ card + loan restart", amount: 550, when: "19 Nov 2026", iso: ANZ_RESTART, note: "Card $250 + loan $300 resume this day", urgent: true },
   { id: "card-min", name: "ANZ credit card minimum", amount: 250, when: "From 19 Nov (monthly)", note: "$0 until restart date", urgent: false },
   { id: "loan-min", name: "ANZ personal loan", amount: 300, when: "From 19 Nov (monthly)", note: "$0 until restart date", urgent: false },
   { id: "utilities", name: "Water + electricity", amount: 40, when: "Weekly share", note: "Hold", urgent: false },
-  { id: "comms", name: "Phone + internet", amount: 51, when: "Weekly share", note: "$219/mo ÷ 4.33", urgent: false },
 ];
 
 export const BUDGET_ROWS = [
   { cat: "Net take-home (Bevchain)", old: 1125, notes: "Floor until logged hours / payslips prove more", income: true },
-  { cat: "Rent", old: 285, neu: 285, notes: "Thursday — always first" },
+  { cat: "Rent", old: 285, neu: RENT_NOW, notes: "$285 until 2 weeks in front (uncertain) · then $270" },
   { cat: "Water + electricity", old: 40, neu: 40, notes: "Hold" },
-  { cat: "Phone + internet", old: 51, neu: 51, notes: "$219/mo ÷ 4.33" },
+  { cat: "Phone", old: 28, neu: LIVING.phone, notes: "$120/mo due the 13th" },
+  { cat: "Internet", old: 24, neu: LIVING.internet, notes: "$105/mo due the 25th" },
+  { cat: "Car insurance", old: 0, neu: LIVING.insurance, notes: "$41/mo due the 18th", cut: true },
   { cat: "Food / groceries", old: 70, neu: 70, notes: "Already tight — don’t slash" },
-  { cat: "Fuel", old: 100, neu: 100, notes: "Work / personal — track receipts" },
-  { cat: "Smokes", old: 100, neu: SMOKES_WEEK, notes: "$12–$13/day actual (~$84–$91/wk)", cut: true },
+  { cat: "Fuel", old: 100, neu: FUEL_WEEK, notes: "Minimum at current prices", cut: true },
+  { cat: "Smokes", old: 87.5, neu: SMOKES_WEEK, notes: "Cap — do not float above $120/wk", cut: true },
   { cat: "Daily allowance", old: 105, neu: 70, notes: "$10/day envelope", cut: true },
   { cat: "Emergency savings", old: 100, neu: 50, notes: "Still pay yourself — smaller", cut: true },
   { cat: "ANZ loan + card", old: 127, neu: 0, notes: "$0 until 19 Nov · then $250 + $300/mo back", cut: true },
-  { cat: "Afterpay", old: 50, neu: 25, notes: "$25/wk until paid off", cut: true },
-  { cat: "Fundo", old: 48.57, neu: 20, notes: "$20/wk until paid off", cut: true },
-  { cat: "WalletWizard", old: 21.6, neu: 21.6, notes: "Unchanged weekly" },
-  { cat: "Parking fines plan", old: 0, neu: 15, notes: "After $60 × 2 early Sep", cut: true },
-  { cat: "Debt attack / buffer", old: 0, neu: 60, notes: "Extra to snowball — grows with overtime", cut: true },
+  { cat: "Beforepay", old: 0, neu: 53, notes: "$53/wk for 4 weeks then $0", cut: true },
+  { cat: "Quick Cash", old: 0, neu: 40, notes: "$40/wk until $580 is $0", cut: true },
+  { cat: "Fundo", old: 20, neu: 20, notes: "$20/wk until $317 is $0" },
+  { cat: "WalletWizard", old: 21.6, neu: 21.6, notes: "$21.60/wk until $266 is $0" },
+  { cat: "Debt attack / buffer", old: 0, neu: 60, notes: "Extra to snowball — Press Pay / friends are one-offs on top", cut: true },
 ];
 
 export const LEVERS = [
-  { item: "Smokes (actual)", now: SMOKES_WEEK, rec: SMOKES_WEEK, saved: 0, how: "$12–$13/day is the live number. $50/wk cap would free ~$37.50" },
+  { item: "Smokes (cap)", now: SMOKES_WEEK, rec: SMOKES_WEEK, saved: 0, how: "$120/wk is the maximum. Every dollar under that is snowball" },
+  { item: "Fuel (floor)", now: FUEL_WEEK, rec: FUEL_WEEK, saved: 0, how: "$120/wk minimum at current prices — protect the work car" },
   { item: "Daily allowance", now: 105, rec: 70, saved: 35, how: "$10/day cash only — no top-ups" },
   { item: "Savings (temp.)", now: 100, rec: 50, saved: 50, how: "Still save; rest → debt" },
   { item: "ANZ pause (to 19 Nov)", now: 127, rec: 0, saved: 127, how: "Holiday only — restarts $550/mo on 19 Nov" },
-  { item: "Food / fuel / rent", now: "As now", rec: "Hold", saved: 0, how: "Protect work and health" },
+  { item: "Rent when 2 weeks ahead", now: RENT_NOW, rec: RENT_AHEAD, saved: 15, how: "Standing uncertain — keep $285 until you are actually two weeks in front" },
 ];
 
 export const STAGES = [
-  { name: "Stable", def: "Hardship freeze held · Bevchain floor covers the envelope · fines paid · no new BNPL · no payday renewals" },
-  { name: "Breathing room", def: "Cashflow positive on 8h × 5 · small loans gone · Afterpay closed" },
+  { name: "Stable", def: "Hardship freeze held · Bevchain floor covers the new envelope · WagePay done · no new credit" },
+  { name: "Breathing room", def: "Press Pay, Beforepay, friends, Wallet, Fundo and Quick Cash all $0 · only ANZ left" },
   { name: "In the green", def: "Card falling monthly · $1,000+ emergency cash · surplus ≥ $100/wk avg · no BNPL" },
   { name: "Strong", def: "Card under ~$2,000 or closed · 1 month expenses saved · habits stick after freeze lifts" },
 ];
@@ -298,46 +354,45 @@ export const PHASES = [
     goal: "Accounts frozen; ANZ $0; live on the 8h × 5 floor",
     items: [
       "Bevchain is the income: $41.21/hr casual. Budget to 8 hours × 5 days until four payslips prove a higher band.",
-      "ANZ card + loan stay paused until 19 Nov — do not spend the $127/wk holiday.",
-      "WagePay $138 was due 3 Sep. If the balance is still open, pay it this week and mark $0.",
-      "Parking fines: $60 × 2 early September, then $15/week until paid off.",
-      "Beforepay $53 around 27 Sep — then cleared. Afterpay $25/week; Fundo $20/week; WalletWizard $21.60/week.",
+      "ANZ card + loan are unchanged since the freeze and stay paused until 19 Nov — do not spend the $127/wk holiday.",
+      "WagePay is done. Next week is heavy: Press Pay $80, Timbo $50, Josh $80, plus internet $105 on the 25th.",
+      "Beforepay is $53/week for four weeks then gone. Quick Cash $40, Fundo $20, WalletWizard $21.60 until those balances die.",
+      "Fuel $120/wk minimum. Smokes $120/wk maximum. Rent $285 until you are actually two weeks in front, then $270.",
       "Log every shift the day you finish. Overtime is snowball, not a new lifestyle.",
     ],
     status: "active",
   },
   {
-    title: "Phase 1 — Stabilise inside the freeze",
-    when: "Now → 19 Nov 2026",
-    goal: "Hold live minimums; snowball leftovers into fines then Fundo",
+    title: "Phase 1 — Kill the small stack",
+    when: "Now → before 19 Nov 2026",
+    goal: "Clear Press Pay, friends, Beforepay, Wallet, Fundo, Quick Cash",
     items: [
-      "Live weekly: rent, Fundo $20, Afterpay $25, WW $21.60, fines $15 after the deposits.",
-      "Floor take-home is ~$1,302/wk (PAYG estimate). After the ~$835 freeze envelope that leaves ~$467/wk to attack debt.",
-      "Extra days (Sat OT / Sunday) go to the current snowball target only.",
-      "Success: freeze held, WagePay + Beforepay gone, fine deposits paid, no new debt, first payslips on file.",
+      "Live weekly after next week’s one-offs: rent, Beforepay $53 (4 weeks), Quick Cash $40, Fundo $20, WW $21.60.",
+      "Phone $120 on the 13th, car insurance $41 on the 18th, internet $105 on the 25th — calendar those, don’t let them surprise the week.",
+      "Mike $430 over two payments once the next-week hits are done.",
+      "Success: every non-ANZ balance is $0, freeze still held, no new credit.",
     ],
     status: "upcoming",
   },
   {
     title: "Phase 2 — ANZ restarts 19 Nov",
     when: "19 Nov 2026 → ~early 2027",
-    goal: "Card $250 + loan $300 come back; do not reopen spend",
+    goal: "Card $250 + loan $300 come back; only ANZ left to tackle",
     items: [
-      "From 19 Nov the envelope needs ~$127/wk more — that is why the freeze lifestyle has to stick.",
-      "WalletWizard still weekly until $0, then redirect ~$22/wk to Afterpay.",
-      "Afterpay at $25/wk is slow on the current balance — extra days finish it years earlier.",
+      "From 19 Nov the envelope needs ~$127/wk more — that is why fuel/smokes/rent have to already stick.",
+      "If small lenders are gone, every freed dollar plus extra days hits the credit card on top of the $250 minimum.",
       "Stay casual-safe: live on 8h × 5 until conversion or a full month of matching payslips.",
-      "Close/freeze Afterpay habit — do not reopen the loop.",
+      "Do not reopen BNPL or payday products once this stack is dead.",
     ],
     status: "upcoming",
   },
   {
     title: "Phase 3 — Attack the credit card",
-    when: "When Afterpay is clear",
-    goal: "Main wealth-destroyer becomes the focus",
+    when: "When small loans and friends are clear",
+    goal: "Main wealth-destroyer becomes the only target",
     items: [
       "Keep personal loan $300/mo from the 19 Nov restart.",
-      "Card min $250 PLUS every freed dollar + extra days.",
+      "Card min $250 PLUS every freed weekly (Quick Cash $40, Fundo $20, WW $21.60, Beforepay $53, friend payments).",
       "On the Bevchain floor the $6k card can still move. Overtime is acceleration, not a lifestyle upgrade.",
     ],
     status: "upcoming",
@@ -349,7 +404,7 @@ export const PHASES = [
     items: [
       "Build emergency cash to $1,000, then ~1 month core bills.",
       "Restore savings to $100/wk once the card is clearly falling.",
-      "Smokes: hold $12–$13/day or cut toward $50/wk (~$37.50 freed).",
+      "Smokes: hold the $120 cap or cut it — every dollar under is snowball.",
       "Personal loan on autopay until $0 — don’t refinance worse.",
     ],
     status: "upcoming",
@@ -357,41 +412,54 @@ export const PHASES = [
 ];
 
 export const SNOWBALL = [
-  { n: 1, target: "WagePay + Beforepay + fine deposits", why: "Due-dates and legal risk", when: "3 Sep · early Sep · ~27 Sep" },
-  { n: 2, target: "Parking fines remainder + Fundo", why: "Weekly plans that free cash when they die", when: "After the three micro-finals" },
-  { n: 3, target: "Afterpay", why: "Stops the BNPL trap — $25/wk is the floor not the finish", when: "When small lenders are moving" },
-  { n: 4, target: "ANZ credit card", why: "Highest ongoing interest drag", when: "Mins restart 19 Nov; extra after Afterpay $0" },
+  { n: 1, target: "Press Pay + Timbo + Josh", why: "Due next week — one-hit clears", when: "Week of 21 Sep" },
+  { n: 2, target: "Beforepay", why: "$53/wk for 4 weeks then gone", when: "Keep weekly · extra shortens it" },
+  { n: 3, target: "WalletWizard → Fundo → Quick Cash + Mike", why: "Last small lenders and the remaining friend loan", when: "After the 4 Beforepay weeks / two Mike payments" },
+  { n: 4, target: "ANZ credit card", why: "Highest ongoing interest drag — only ANZ left after that", when: "Mins restart 19 Nov; extra after small stack $0" },
   { n: 5, target: "ANZ personal loan", why: "Keep mins from 19 Nov; finish last", when: "After card under control" },
 ];
 
+export const HEAVY_WEEK = {
+  when: "Week of 21 Sep 2026",
+  isoEnd: "2026-09-27",
+  items: [
+    { name: "Press Pay", amount: 80 },
+    { name: "Timbo", amount: 50 },
+    { name: "Josh", amount: 80 },
+    { name: "Internet (25th)", amount: 105 },
+  ],
+};
+
 export const PATH = [
-  { period: "Now → 19 Nov", focus: "Bevchain floor · hardship freeze · kill micro-finals", pos: "Live on 8h × 5 · extra days to snowball" },
-  { period: "~27 Sep 2026", focus: "Beforepay $53 final", pos: "Then cleared — do not roll it" },
+  { period: "Week of 21 Sep", focus: "Press Pay $80 · Timbo $50 · Josh $80 · internet $105 on the 25th", pos: "Heavy week — still doable on the floor" },
+  { period: "Next 4 weeks", focus: "Beforepay $53/wk until $0", pos: "Then that $53/wk redirects to the next small target" },
+  { period: "Through Oct", focus: "Wallet $266 · Fundo $317 · Quick Cash $580 · Mike $430", pos: "All small loans then gone — only ANZ left" },
   { period: "19 Nov 2026", focus: "ANZ card $250 + loan $300 restart", pos: "Envelope must already be a habit" },
-  { period: "2027", focus: "Afterpay → $0; card attack", pos: "Breathing-room stage — faster if extra days stick" },
-  { period: "2027–28", focus: "Heavy card paydown + buffer", pos: "“In the green” is realistic on the floor plus overtime" },
+  { period: "2027", focus: "Card attack on the Bevchain floor", pos: "Realistic once the small stack is dead" },
 ];
 
 export const CHECKLIST = [
   "Calendar 19 Nov 2026 in red: ANZ card $250 and personal loan $300 both restart that day.",
-  "Set the freeze operating pocket: rent, food, fuel, smokes at $12–$13/day, $70 cash, $50 savings, Fundo $20, Afterpay $25, WW $21.60.",
+  "Calendar next week: Press Pay $80, Timbo $50, Josh $80, internet $105 on 25 Sep.",
+  "Set the operating pocket: rent $285, fuel $120 min, smokes $120 max, food, $70 cash, $50 savings.",
+  "Phone $120 on the 13th, car insurance $41 on the 18th, internet $105 on the 25th — every month.",
   "Log every Bevchain shift in Hours the day you finish. Budget to 8h × 5 until four payslips prove a higher band.",
   "Drop each payslip when it lands. Actual net is the source of truth — hours are an estimate.",
-  "WagePay $138 was due 3 Sep. If still open, pay it this week and mark $0.",
-  "Parking fines: $60 per infringement early September, then $15/week until paid off.",
-  "Beforepay $53 due around 27 Sep — then cleared. Do not roll it.",
-  "Afterpay $25/week until $0. Freeze new purchases; remove saved cards from shopping apps.",
-  "Treat Saturday OT and Sunday as debt-attack days, not smoke or spend days.",
+  "Beforepay $53/week for four weeks — then mark $0. Do not roll it.",
+  "Keep Fundo $20, WalletWizard $21.60, Quick Cash $40 automatic until those balances die.",
+  "Mike $430 over two payments after the next-week friend hits. Then only ANZ is left.",
   "Tell one trusted person the freeze + “no new debt” rule. Update balances here after each payment.",
 ];
 
 export const RITUAL_STEPS = [
   "Check Bevchain net pay deposited. During the freeze, only the operating pocket should move — do not unfreeze accounts for extras.",
-  "Pay rent (if due) and live debts this week: Fundo $20, Afterpay $25, fines $15 after the early-Sep deposits, WalletWizard $21.60. ANZ stays $0 until 19 Nov.",
+  "Pay rent ($285, or $270 only if you are actually two weeks in front). Live weekly debts: Beforepay $53 (while the 4 weeks run), Quick Cash $40, Fundo $20, WalletWizard $21.60. ANZ stays $0 until 19 Nov.",
+  "If this is the heavy week: Press Pay $80, Timbo $50, Josh $80, and internet $105 if the 25th falls here.",
+  "Monthlies on their day: phone $120 on the 13th, car insurance $41 on the 18th, internet $105 on the 25th.",
   "Move $50 to savings (separate / locked if possible — harder to touch).",
   "Cash out $70 for the week’s daily allowance only — when it’s gone, it’s gone.",
-  "Smokes are $12–$13/day (~$84–$91/wk). Pay that from the envelope. Any day under $12 is extra snowball — do not float to $15.",
-  "Any leftover after food/fuel → current snowball target. Overtime leftover grows — still one target only.",
+  "Smokes cap is $120/wk. Fuel is $120/wk minimum. Any smoke day under the cap is extra snowball — do not float above $120.",
+  "Any leftover after food/fuel → current snowball target (Press Pay / friends first, then Beforepay). Overtime leftover grows — still one extra target only.",
   "Log this week’s shifts if you haven’t. Tick the week: On plan / Off plan + one sentence why. Budget to the 5-day floor until four payslips prove a higher band.",
 ];
 
@@ -409,18 +477,23 @@ export function defaultPlan() {
     debts: DEFAULT_DEBTS.map((d) => ({ ...d })),
     checks: CHECKLIST.map(() => false),
     weekLogs: [],
-    paidBills: {},
+    paidBills: { wagepay: true },
     band: "bev-min",
   };
 }
 
 export function loadPlan() {
   try {
-    let raw = localStorage.getItem(STORAGE_KEY);
+    const current = localStorage.getItem(STORAGE_KEY);
+    let raw = current;
+    let legacy = false;
     if (!raw) {
       for (const key of LEGACY_KEYS) {
         raw = localStorage.getItem(key);
-        if (raw) break;
+        if (raw) {
+          legacy = true;
+          break;
+        }
       }
     }
     if (!raw) return defaultPlan();
@@ -431,6 +504,13 @@ export function loadPlan() {
       : parsed.scenario && String(parsed.scenario).startsWith("bev")
         ? parsed.scenario
         : "bev-min";
+    if (legacy) {
+      return {
+        ...base,
+        weekLogs: Array.isArray(parsed.weekLogs) ? parsed.weekLogs : [],
+        band: BEV_BANDS.some((b) => b.id === band) ? band : "bev-min",
+      };
+    }
     return {
       ...base,
       ...parsed,
@@ -458,15 +538,15 @@ export function activeSnowball(debts) {
 
 export function snowballStep(target) {
   const t = target?.id;
-  if (t === "fines" || t === "wagepay" || t === "beforepay") return 1;
-  if (t === "fundo" || t === "wallet") return 2;
-  if (t === "afterpay") return 3;
+  if (t === "presspay" || t === "timbo" || t === "josh") return 1;
+  if (t === "beforepay") return 2;
+  if (t === "wallet" || t === "fundo" || t === "quickcash" || t === "mike") return 3;
   if (t === "card") return 4;
   return 5;
 }
 
 export function remainingOneOffs(debts) {
-  const ids = ["wagepay", "beforepay"];
+  const ids = ["presspay", "timbo", "josh", "mike"];
   return roundCents(ids.reduce((s, id) => s + Math.max(0, debts.find((d) => d.id === id)?.balance || 0), 0));
 }
 
@@ -482,20 +562,35 @@ export function billTone(bill, paid, date = new Date()) {
 }
 
 export function shortWhen(w) {
+  if (w.includes("Next week")) return "Next wk";
+  if (w.includes("13th")) return "13th";
+  if (w.includes("18th")) return "18th";
+  if (w.includes("25th")) return "25th";
   if (w.includes("Early Sep")) return "Early Sep";
   if (w.includes("Sep")) return w.replace("2026", "").replace("~", "").trim().slice(0, 10);
   if (w.includes("Nov")) return w.replace("2026", "").trim().slice(0, 10);
+  if (w.includes("Oct")) return w.replace("2026", "").trim().slice(0, 10);
   if (w.includes("Aug")) return w.replace("2026", "").trim().slice(0, 10);
   if (w.includes("Thursday")) return "Thu";
   if (w.includes("Weekly")) return "Wk";
+  if (w.includes("2 payments")) return "2 pays";
   return w.slice(0, 10);
 }
 
 export function stageIndex(debts) {
   const open = (id) => (debts.find((d) => d.id === id)?.balance || 0) > 0;
-  if (open("wagepay") || open("beforepay") || open("fines")) return 0;
-  if (open("fundo") || open("wallet") || open("afterpay")) return 1;
-  if (open("card") && (debts.find((d) => d.id === "card")?.balance || 0) > 2000) return 2;
+  const small =
+    open("presspay") ||
+    open("beforepay") ||
+    open("wallet") ||
+    open("fundo") ||
+    open("quickcash") ||
+    open("timbo") ||
+    open("josh") ||
+    open("mike");
+  if (small) return 0;
+  if (open("card") && (debts.find((d) => d.id === "card")?.balance || 0) > 2000) return 1;
+  if (open("card") || open("loan")) return 2;
   return 3;
 }
 
