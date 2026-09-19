@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>GreenLedger · Bevchain pay + debt recovery</title>
+    <meta
+      name="description"
+      content="Personal debt recovery and Bevchain hours/payslip tracker. Stored only in this browser."
+    />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/app.css" />
+  </head>
+  <body>
+    <div class="app">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">G</div>
+          <div>
+            <h1>GreenLedger</h1>
+            <p>Jarrad Kenny · AUD</p>
+          </div>
+        </div>
+
+        <nav class="nav" id="nav" aria-label="Sections">
+          <button type="button" class="active" data-view="dashboard">
+            <span class="icon">◉</span><span class="nav-label">Dashboard</span>
+          </button>
+          <button type="button" data-view="debts">
+            <span class="icon">▤</span><span class="nav-label">Debts</span>
+          </button>
+          <button type="button" data-view="budget">
+            <span class="icon">◈</span><span class="nav-label">Budget</span>
+          </button>
+          <button type="button" data-view="hours">
+            <span class="icon">◷</span><span class="nav-label">Hours</span>
+          </button>
+          <button type="button" data-view="payslips">
+            <span class="icon">▤</span><span class="nav-label">Payslips</span>
+          </button>
+          <button type="button" data-view="plan">
+            <span class="icon">◎</span><span class="nav-label">Plan</span>
+          </button>
+          <button type="button" data-view="ritual">
+            <span class="icon">✓</span><span class="nav-label">Ritual</span>
+          </button>
+          <button type="button" data-view="jobs">
+            <span class="icon">⬡</span><span class="nav-label">Jobs</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-actions">
+          <button class="btn" type="button" data-open="payslip">Add payslip</button>
+          <button class="btn primary" type="button" data-open="shift">Log hours</button>
+        </div>
+
+        <div class="sidebar-foot" id="sidebar-foot">
+          <strong>Bevchain</strong> $41.21/hr casual<br />
+          Budget to 8h × 5<br />
+          Planning tool — this browser
+        </div>
+      </aside>
+
+      <main class="main">
+        <section class="view active" id="view-dashboard"></section>
+        <section class="view" id="view-debts"></section>
+        <section class="view" id="view-budget"></section>
+        <section class="view" id="view-hours"></section>
+        <section class="view" id="view-payslips"></section>
+        <section class="view" id="view-plan"></section>
+        <section class="view" id="view-ritual"></section>
+        <section class="view" id="view-jobs"></section>
+      </main>
+    </div>
+
+    <dialog id="dlg-shift" aria-labelledby="shift-title">
+      <form class="dlg" id="shift-form">
+        <header>
+          <div>
+            <p class="eyebrow" id="shift-kicker">New shift</p>
+            <h2 id="shift-title">Log hours</h2>
+          </div>
+          <button class="btn ghost" type="button" data-close value="cancel">Close</button>
+        </header>
+        <input type="hidden" id="shift-id" />
+        <div class="form-grid">
+          <label class="field">
+            Job
+            <select id="shift-job" required></select>
+          </label>
+          <label class="field">
+            Date
+            <input id="shift-date" type="date" required />
+          </label>
+          <div class="full">
+            <p class="muted" style="margin-bottom: 8px">Day type</p>
+            <div class="pills wrap" role="group" aria-label="Day type">
+              <button class="pill" type="button" data-day-type="weekday" aria-pressed="true">Weekday</button>
+              <button class="pill" type="button" data-day-type="sat-ot" aria-pressed="false">Saturday overtime</button>
+              <button class="pill" type="button" data-day-type="sat-ordinary" aria-pressed="false">Saturday ordinary</button>
+              <button class="pill" type="button" data-day-type="sunday" aria-pressed="false">Sunday</button>
+            </div>
+            <p class="helper" id="shift-helper">
+              Sat OT: first 2 hours 1.5×, then 2×. Standalone Sat min 4h = 2 @ 1.5× + 2 @ 2×. Sunday: all hours 2×, min 4h.
+            </p>
+          </div>
+          <div class="full">
+            <p class="muted" style="margin-bottom: 8px">How long were you there?</p>
+            <div class="pills" role="group" aria-label="Time entry mode">
+              <button class="pill" type="button" data-mode="duration" aria-pressed="true">Duration</button>
+              <button class="pill" type="button" data-mode="clock" aria-pressed="false">Clock times</button>
+            </div>
+          </div>
+          <div id="duration-fields" class="full">
+            <label class="field">
+              Time on site (clock-in to clock-out)
+              <div class="hm">
+                <input id="shift-h" type="number" min="0" max="24" step="1" value="0" />
+                <span>h</span>
+                <input id="shift-m" type="number" min="0" max="59" step="1" value="0" />
+                <span>m</span>
+              </div>
+            </label>
+          </div>
+          <div id="clock-fields" class="full" hidden>
+            <div class="form-grid">
+              <label class="field">
+                Start
+                <input id="shift-start" type="time" />
+              </label>
+              <label class="field">
+                End
+                <input id="shift-end" type="time" />
+              </label>
+            </div>
+          </div>
+          <label class="field">
+            Unpaid break (minutes)
+            <input id="shift-break" type="number" min="0" max="240" step="5" value="30" />
+          </label>
+          <label class="field">
+            Hourly rate
+            <input id="shift-rate" type="number" min="0" step="0.01" />
+          </label>
+          <div class="preview">
+            <div>
+              <small>Worked</small>
+              <div class="preview-value" id="shift-worked">0h</div>
+            </div>
+            <div>
+              <small>Paid hours</small>
+              <div class="preview-value" id="shift-paid">0h</div>
+            </div>
+            <div style="text-align: right">
+              <small>Est. gross</small>
+              <div class="preview-value" id="shift-gross">$0.00</div>
+            </div>
+            <p class="preview-note" id="shift-ot-note">1.0× / 1.5× / 2× split</p>
+          </div>
+          <p class="helper full">Hours calc is an estimate only. Payslips are the source of truth for take-home.</p>
+          <details class="more full">
+            <summary>Actual pay from the slip (optional)</summary>
+            <div class="form-grid" style="margin-top: 12px">
+              <label class="field">
+                Actual gross
+                <input id="shift-actual-gross" type="number" min="0" step="0.01" placeholder="0.00" />
+              </label>
+              <label class="field">
+                Actual net / take-home
+                <input id="shift-actual-net" type="number" min="0" step="0.01" placeholder="1302.40" />
+              </label>
+              <label class="field">
+                Tax withheld
+                <input id="shift-actual-tax" type="number" min="0" step="0.01" placeholder="0.00" />
+              </label>
+              <label class="field">
+                Super
+                <input id="shift-actual-super" type="number" min="0" step="0.01" placeholder="0.00" />
+              </label>
+              <label class="field full">
+                Other deductions
+                <input id="shift-actual-deductions" type="number" min="0" step="0.01" placeholder="0.00" />
+              </label>
+            </div>
+          </details>
+          <label class="field full">
+            Notes
+            <textarea id="shift-notes" placeholder="Run, depot, anything you want on the record"></textarea>
+          </label>
+        </div>
+        <div class="dlg-actions">
+          <button class="btn danger" type="button" id="shift-delete" hidden>Delete</button>
+          <div class="right">
+            <button class="btn" type="button" data-close>Cancel</button>
+            <button class="btn primary" type="submit">Save shift</button>
+          </div>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="dlg-payslip" aria-labelledby="slip-title">
+      <form class="dlg" id="payslip-form">
+        <header>
+          <div>
+            <p class="eyebrow" id="slip-kicker">Payslip vault</p>
+            <h2 id="slip-title">Add payslip</h2>
+          </div>
+          <button class="btn ghost" type="button" data-close value="cancel">Close</button>
+        </header>
+        <input type="hidden" id="slip-id" />
+        <div class="form-grid">
+          <label class="field">
+            Job
+            <select id="slip-job" required></select>
+          </label>
+          <label class="field">
+            Pay date
+            <input id="slip-paydate" type="date" required />
+          </label>
+          <label class="field">
+            Period start
+            <input id="slip-start" type="date" />
+          </label>
+          <label class="field">
+            Period end
+            <input id="slip-end" type="date" />
+          </label>
+          <label class="field">
+            Actual gross
+            <input id="slip-gross" type="number" min="0" step="0.01" placeholder="0.00" />
+          </label>
+          <label class="field">
+            Actual net / take-home
+            <input id="slip-net" type="number" min="0" step="0.01" placeholder="1302.40" required />
+          </label>
+          <label class="field">
+            Tax withheld
+            <input id="slip-tax" type="number" min="0" step="0.01" placeholder="0.00" />
+          </label>
+          <label class="field">
+            Super
+            <input id="slip-super" type="number" min="0" step="0.01" placeholder="0.00" />
+          </label>
+          <label class="field full">
+            Other deductions
+            <input id="slip-deductions" type="number" min="0" step="0.01" placeholder="0.00" />
+          </label>
+          <p class="helper full">Payslips are the source of truth for take-home. Net is never overwritten by the hours calculator.</p>
+          <label class="field full drop" id="drop-zone">
+            <input id="slip-file" type="file" accept="application/pdf,image/*" />
+            <strong id="drop-label">Drop a PDF or photo of the payslip</strong>
+            <span>or tap to choose a file. Stored only on this device.</span>
+          </label>
+          <label class="field full">
+            Notes
+            <textarea id="slip-notes" placeholder="Pay cycle, missing hours, anything to remember"></textarea>
+          </label>
+        </div>
+        <div class="dlg-actions">
+          <button class="btn danger" type="button" id="slip-delete" hidden>Delete</button>
+          <div class="right">
+            <button class="btn" type="button" id="slip-view" hidden>View file</button>
+            <button class="btn" type="button" data-close>Cancel</button>
+            <button class="btn primary" type="submit">Save payslip</button>
+          </div>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="dlg-job" aria-labelledby="job-title">
+      <form class="dlg" id="job-form">
+        <header>
+          <div>
+            <p class="eyebrow">Employer</p>
+            <h2 id="job-title">Job</h2>
+          </div>
+          <button class="btn ghost" type="button" data-close>Close</button>
+        </header>
+        <input type="hidden" id="job-id" />
+        <div class="form-grid">
+          <label class="field full">
+            Name
+            <input id="job-name" type="text" required placeholder="Bevchain HR Multi-drop" />
+          </label>
+          <label class="field">
+            Hourly rate
+            <input id="job-rate" type="number" min="0" step="0.01" required />
+          </label>
+          <label class="field">
+            Default unpaid break (min)
+            <input id="job-break" type="number" min="0" step="5" />
+          </label>
+          <label class="field">
+            Colour
+            <input id="job-color" type="color" value="#3dd68c" />
+          </label>
+          <p class="muted full">Weekday: 1.5× after 8 paid hours, 2× after 10. Saturday and Sunday use their own rates.</p>
+        </div>
+        <div class="dlg-actions">
+          <button class="btn danger" type="button" id="job-delete" hidden>Delete</button>
+          <div class="right">
+            <button class="btn" type="button" data-close>Cancel</button>
+            <button class="btn primary" type="submit">Save job</button>
+          </div>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="dlg-debt" aria-labelledby="debt-title">
+      <form class="dlg" id="debt-form">
+        <header>
+          <div>
+            <p class="eyebrow">Debt stack</p>
+            <h2 id="debt-title">Update balance</h2>
+          </div>
+          <button class="btn ghost" type="button" data-close>Close</button>
+        </header>
+        <input type="hidden" id="debt-id" />
+        <label class="field">
+          Balance (AUD)
+          <input id="debt-balance" type="number" min="0" step="0.01" required />
+        </label>
+        <div class="dlg-actions">
+          <div class="right">
+            <button class="btn" type="button" data-close>Cancel</button>
+            <button class="btn primary" type="submit">Save</button>
+          </div>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="dlg-viewer" class="wide" aria-label="Payslip file">
+      <div class="dlg" style="padding-bottom: 8px">
+        <header>
+          <div>
+            <p class="eyebrow">Stored file</p>
+            <h2 id="viewer-title">Payslip</h2>
+          </div>
+          <div class="toolbar" style="margin: 0">
+            <a class="btn" id="viewer-download" download>Download</a>
+            <button class="btn ghost" type="button" data-close>Close</button>
+          </div>
+        </header>
+      </div>
+      <div id="viewer-body"></div>
+    </dialog>
+
+    <dialog id="dlg-confirm" aria-labelledby="confirm-title">
+      <form class="dlg" method="dialog">
+        <header>
+          <div>
+            <p class="eyebrow">Please confirm</p>
+            <h2 id="confirm-title">Delete?</h2>
+          </div>
+        </header>
+        <p class="muted" id="confirm-body"></p>
+        <div class="dlg-actions">
+          <div class="right">
+            <button class="btn" value="cancel">Cancel</button>
+            <button class="btn danger" value="ok" id="confirm-ok">Delete</button>
+          </div>
+        </div>
+      </form>
+    </dialog>
+
+    <div class="toast" id="toast" hidden role="status"></div>
+    <script type="module" src="js/app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "name": "green-ledger",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Debt recovery plus hours and payslips on Bevchain income.",
+  "scripts": {
+    "start": "python -m http.server 4175",
+    "test": "node test-money.js && node test-tax.js && node test-plan.js"
+  }
+}
